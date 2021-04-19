@@ -37,7 +37,7 @@ if (isset($_POST['singin_btn'])){
 					{
 
 						$_SESSION['id'] = $user_data['id'];
-						header("Location: massive.php");
+						header("Location: LORM.php");
 						die;
 					}
 				}

@@ -196,12 +196,6 @@ session_start();
 <section class="py-7 py-md-0 bg-hero" id="content">
     <div class="container">
         <br>
-        <h1 style="color:white;text-align:center">How many VM would you like to provision ?</h1>        
-        <div >
-            <input type="text" id="countvm" placeholder="How many VM would you like to provision ?" />
-        </div>
-        
-        <br>
         <h1 style="color:white;text-align:center">Create a ressource groupe</h1>
         <input type="checkbox" id="myCheck" onclick="NoErg()">
         <label style="color:white;"> I want to assign my VM to an existing ressources groupe</label><br>
@@ -339,6 +333,21 @@ session_start();
             <input type='text' id='pvadd' name='pvadd' placeholder="Add private IP address "><br><br>
     </div> <br>
       
+    <h1 style="color:white;text-align: center;">Create storage account </h1>
+    <div >
+        <input type="text" id="storage_name" placeholder="You need just to give it a NAME and we will do the rest " />
+    </div><br>
+
+    <h1 style="color:white;text-align: center;"> Generate ssh key file </h1>
+
+    <div >
+        <input type="text" id="rsabits" placeholder=" Insert RSA bits ( Superior then 2048 recomanded) " />
+    </div><br>
+
+    <div >
+        <input type="text" id="filename" placeholder=" Insert the name with .pem extention " />
+    </div><br>
+
     <h1 style="color:white;text-align: center;"> create virtual machine </h1>
 
     <div >
@@ -394,10 +403,6 @@ session_start();
     
     <div >
         <input type="text" id="admin_username" placeholder=" Add an admin user name  " />
-    </div><br>
-
-    <div >
-        <input type="text" id="admin_password" placeholder=" Give it a password" />
     </div><br>
 
 
@@ -502,7 +507,6 @@ session_start();
     let saveFile = () => {
     	
         // Get the data from each element on the form.
-    	const countvm = document.getElementById('countvm');      
     	const rgname = document.getElementById('rgname');
         const rglocation = document.getElementById('rglocation');
         const environment = document.getElementById('environment');
@@ -566,8 +570,11 @@ session_start();
                       return  prefixpv
                 }
                 else return ""
-        }
+            }
 
+        const stname = document.getElementById('storage_name');
+        const rsabits = document.getElementById('rsabits');
+        const filename = document.getElementById('filename');
         const vmname = document.getElementById('vmname');
         const vmsize = document.getElementById('vmsize');
         const diskname = document.getElementById('diskname');
@@ -576,8 +583,6 @@ session_start();
         const source_image = document.getElementById('source_image');
         const computer_name = document.getElementById('computer_name');
         const admin_username = document.getElementById('admin_username');
-        const admin_password = document.getElementById('admin_password');
-
 
         var newrgp = '\rresource "azurerm_resource_group" "rg" {' + ' \r\n '  +' name ="' + rgname.value +'"' + ' \r\n '  + 
         ' location ="' + rglocation.value +'"' + ' \r\n '  + 
@@ -645,7 +650,7 @@ session_start();
 
 
 
-            '\rresource "azurerm_public_ip" "public_ip" {' + ' \r\n '  +' count ="' + countvm.value + '"'+ ' \r\n '  +' name ="' + pubipname.value +'${format("%02d", count.index)}"' + ' \r\n ' +
+            '\rresource "azurerm_public_ip" "public_ip" {' + ' \r\n '  +' name ="' + pubipname.value +'"' + ' \r\n ' +
             ' resource_group_name = "' + rgname.value +'"' + ' \r\n ' +
             ' location ="' + rglocation.value +'"' + ' \r\n '  + 
             ' allocation_method = "' + allocation_method +'"' + ' \r\n ' + gkk(prefixpub) +
@@ -657,47 +662,59 @@ session_start();
             ' resource_group_name = "' + sgname.value +'"' + ' \r\n '  + skk() +
             '\r tags = { ' + ' \r\n '  +'   environment = "' + environment.value +'" \r  }' + '\r\n'  +'}' + ' \r\n '  + 
 
-            '\rresource "azurerm_network_interface" "nic" {' + ' \r\n '  +' count ="' + countvm.value + '"'+' \r\n '  +' name ="' + nicnamme.value +'${format("%02d", count.index)}"' + ' \r\n ' + 
+            '\rresource "azurerm_network_interface" "nic" {' + ' \r\n '  +' name ="' + nicnamme.value +'"' + ' \r\n ' + 
             ' location ="' + rglocation.value +'"' + ' \r\n '  + 
             ' resource_group_name = "' + rgname.value +'"' + ' \r\n ' +
             '\r ip_configuration { \r   name= "nicConfiguration" \r   '+ NoE_subnetid(subid1,subid2) + ' \r\n '+
             '  private_ip_address_allocation = "' + allocation_method_pv +'"' + ' \r\n ' + pkk(prefixpv) +
-            '  public_ip_address_id = element(azurerm_public_ip.public_ip.*.id, count.index)' + ' \r\n ' +' }' +
+            '  public_ip_address_id = azurerm_public_ip.public_ip.id' + ' \r\n ' +' }' +
             '\r tags = { ' + ' \r\n '  +'   environment = "' + environment.value +'" \r  }' + '\r\n'  +'}' + ' \r\n '  + 
 
-            ' \rresource "azurerm_subnet_network_security_group_association" "association" {' + ' \r\n ' +
-            ' subnet_id = azurerm_subnet.subnet.id' + ' \r\n ' +
+            ' \rresource "azurerm_network_interface_security_group_association" "association" {' + ' \r\n ' +
+            ' network_interface_id      = azurerm_network_interface.nic.id' + ' \r\n ' +
             ' network_security_group_id = azurerm_network_security_group.nsg.id' + '\r\n' + '}'+ ' \r\n ' +
 
-            ' \rresource "azurerm_virtual_machine" "vm" {' + ' \r\n '  +' count ="' + countvm.value + '"'+ ' \n ' +' name ="' + vmname.value +'${format("%02d", count.index)}"' + ' \r\n ' +
+            ' \rresource "azurerm_storage_account" "storage" {' + ' \r\n ' +' name ="' + stname.value +'"' + ' \r\n ' +
+            ' resource_group_name = "' + rgname.value +'"' + ' \r\n ' +
+            ' location ="' + rglocation.value +'"' + ' \r\n '  + 
+            ' account_tier = "Standard"' + ' \r\n '  +
+            ' account_replication_type = "LRS"'+ ' \r\n '  +
+            '\r tags = { ' + ' \r\n '  +'   environment = "' + environment.value +'" \r  }' + '\r\n'  +'}' + ' \r\n '  + 
+
+            ' \rresource "tls_private_key" "example_ssh" { \n  algorithm = "RSA"' + ' \r\n ' +
+            ' rsa_bits  = ' + rsabits.value + '\r\n'  +'}' + ' \r\n '+
+            ' \rresource "local_file" "cloud_pem" {'+ ' \r\n ' +' filename ="' + filename.value +'"' + ' \r\n ' +
+            ' content = tls_private_key.example_ssh.private_key_pem ' + '\r\n'  +'}' + ' \r\n ' +
+
+            ' \rresource "azurerm_linux_virtual_machine" "linuxvm" {' + ' \n ' +' name ="' + vmname.value +'"' + ' \r\n ' +
             ' location ="' + rglocation.value +'"' + ' \r\n '  + 
             ' resource_group_name = "' + rgname.value +'"' + ' \r\n ' +
-            ' network_interface_ids = [element(azurerm_network_interface.nic.*.id, count.index)] ' + ' \r\n ' +
-            ' vm_size = "' + vmsize.value + '"' + ' \r\n ' +
-            ' delete_os_disk_on_termination = true' + ' \r\n ' +
+            ' network_interface_ids = [azurerm_network_interface.nic.id] ' + ' \r\n ' +
+            ' size = "' + vmsize.value + '"' + ' \r\n ' +
 
-            ' \r storage_os_disk { ' + ' \r\n ' +'   name ="' + diskname.value +'-${count.index}"' + ' \r\n ' +
+            ' \r os_disk { ' + ' \r\n ' +'   name ="' + diskname.value +'"' + ' \r\n ' +
             '   caching = "' + caching.value + '"' + ' \r\n ' +
-            '   create_option = "FromImage"' + ' \r\n ' +
-            '   managed_disk_type = "' + stacctype.value + '"' + ' \r\n ' + ' }' + ' \r\n ' +
+            '   storage_account_type = "' + stacctype.value + '"' + ' \r\n ' + ' }' + ' \r\n ' +
 
-            ' \r storage_image_reference { ' + ' \r\n ' +'  publisher = "Canonical"' + '\r\n' +
+            ' \r source_image_reference { ' + ' \r\n ' +'  publisher = "Canonical"' + '\r\n' +
             '   offer ="' + source_image.value + '"' + '\r\n ' + '  sku = "18.04-LTS" ' + ' \r\n ' + 
             '  version = "latest" '+  '\r\n ' + ' }' +  '\r\n ' +
 
-            ' \r  os_profile { ' + ' \r\n ' +'  computer_name = "' + computer_name.value + '"' + ' \r\n ' +
-            '  admin_username = "' + admin_username.value + '"' + ' \r\n ' +
-            '  admin_password = "' + admin_password.value + '"' + ' \r\n ' + ' }' +  '\r\n ' +
+            ' \r  computer_name = "' + computer_name.value + '"' + ' \r\n ' +
+            ' admin_username = "' + admin_username.value + '"' + ' \r\n ' +
+            ' disable_password_authentication = true '  + ' \r\n ' +
 
-            '\r os_profile_linux_config { '  + ' \r\n ' +
-            '   disable_password_authentication = false '  + ' \r\n ' + ' }' +'\r\n' +
+            '\r  admin_ssh_key { '  + ' \r\n ' +
+            '   username = "' + admin_username.value + '"' + ' \r\n ' +
+            '   public_key = tls_private_key.example_ssh.public_key_openssh  '  + ' \r\n ' + ' }' +'\r\n' +
+
+            '\r boot_diagnostics { '  + ' \r\n ' +
+            '   storage_account_uri = azurerm_storage_account.storage.primary_blob_endpoint '  + ' \r\n ' + ' }' +'\r\n' +
             '\r tags = { ' + ' \r\n '  +'   environment = "' + environment.value +'" \r  }' + '\r\n'  +'}' + ' \r\n '  
         
         // Convert the text to BLOB.
         function validateForm() {
-            var pp = admin_password.value;
             var a = admin_username.value;
-            var cnt = countvm.value;
             var b = rgname.value;
             var c = rglocation.value;
             var d = environment.value;
@@ -708,6 +725,9 @@ session_start();
             var i = pubipname.value;
             var j = sgname.value;
             var k = nicnamme.value;
+            var l = stname.value;
+            var m = rsabits.value;
+            var n = filename.value;
             var o = vmname.value;
             var p = vmsize.value;
             var q = diskname.value;
@@ -717,7 +737,7 @@ session_start();
             var ee = computer_name.value;
 
        
-            if (a == "" || b == "" || c == "" || d == "" || e == "" || g == "" || i == "" || g == "" || k == "" || o == "" || p == "" || q == "" || aa == "" || bb == "" || dd == "" || ee == "" || j == "" || cnt == "" || pp == "") {
+            if (a == "" || b == "" || c == "" || d == "" || e == "" || g == "" || i == "" || g == "" || k == "" || l == "" || m == "" || n == "" || o == "" || p == "" || q == "" || aa == "" || bb == "" || dd == "" || ee == "" || j == "") {
                 alert(" You must be missing some fields !! ");
                 return false;
             }

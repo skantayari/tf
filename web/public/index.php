@@ -50,7 +50,7 @@
                 <h1 class="heading-black text-capitalize">Quickly build AZURE ressources</h1>
                 <p class="lead py-3">This is a platform that helps cloud architectors and system admins to build infrastructure
                     with IAC tool Terraform.</p>
-                <button class="btn btn-primary d-inline-flex flex-row align-items-center" onclick="window.location.href='/massive.php'">
+                <button class="btn btn-primary d-inline-flex flex-row align-items-center" onclick="window.location.href='/LORM.php'">
                     Get started now
                     <em class="ml-2" data-feather="arrow-right"></em>
                 </button>
